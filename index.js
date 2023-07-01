@@ -47,7 +47,7 @@ async function run() {
     });
     app.delete("/deleteLikedMovie/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
+      const query = { id: movieId };
       const result = await likedMovies.deleteOne(query);
       res.send(result);
     });
