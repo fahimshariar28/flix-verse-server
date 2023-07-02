@@ -24,7 +24,6 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-    const likedMovies = client.db("flix-verse").collection("likedMovies");
     const watchList = client.db("flix-verse").collection("watchList");
 
     app.post("/addLikedMovie", async (req, res) => {
@@ -39,18 +38,6 @@ async function run() {
         res.send(result);
       }
     });
-    app.get("/likedMovies?email", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const result = await likedMovies.find(query).toArray();
-      res.send(result);
-    });
-    app.delete("/deleteLikedMovie/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { id: movieId };
-      const result = await likedMovies.deleteOne(query);
-      res.send(result);
-    });
     //   add to watch list
     app.post("/addWatchList", async (req, res) => {
       //   check if movie already exists
@@ -63,6 +50,15 @@ async function run() {
         const result = await watchList.insertOne(movie);
         res.send(result);
       }
+    });
+
+    //   get watch list
+    app.get("/getWatchList/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await watchList.find(query).toArray();
+      console.log(result);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
