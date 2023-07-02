@@ -24,30 +24,29 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-    const watchList = client.db("flix-verse").collection("watchList");
+    const userCollection = client.db("flix-verse").collection("users");
 
-    app.post("/addLikedMovie", async (req, res) => {
-      //   check if movie already exists
-      const movie = req.body;
-      const query = { email: movie.email, movieId: movie.movieId };
-      const result = await likedMovies.find(query).toArray();
-      if (result.length > 0) {
-        res.send("Movie already exists");
-      } else {
-        const result = await likedMovies.insertOne(movie);
-        res.send(result);
-      }
-    });
     //   add to watch list
     app.post("/addWatchList", async (req, res) => {
-      //   check if movie already exists
-      const movie = req.body;
-      const query = { email: movie.email, movieId: movie.movieId };
-      const result = await watchList.find(query).toArray();
-      if (result.length > 0) {
-        res.send("Movie already exists");
+      const { email, data } = req.body;
+      const existUser = await userCollection.findOne({ email: email });
+      if (existUser) {
+        const { likedMovies } = existUser;
+        const movieAlreadyExist = likedMovies.find(({ id }) => id === data.id);
+        if (!movieAlreadyExist) {
+          const result = await userCollection.updateOne(
+            { email: email },
+            { $push: { likedMovies: data } }
+          );
+          res.send(result);
+        } else {
+          res.send("Movie already exists");
+        }
       } else {
-        const result = await watchList.insertOne(movie);
+        const result = await userCollection.insertOne({
+          email: email,
+          likedMovies: [data],
+        });
         res.send(result);
       }
     });
@@ -55,18 +54,40 @@ async function run() {
     //   get watch list
     app.get("/getWatchList/:email", async (req, res) => {
       const email = req.params.email;
-      const query = { email: email };
-      const result = await watchList.find(query).toArray();
-      res.send(result);
+      const user = await userCollection.findOne({ email: email });
+      if (user) {
+        return res.json({ msg: "success", movies: user.likedMovies });
+      } else {
+        return res.json({ msg: "User Not Found" });
+      }
     });
 
     // delete from watch list
     app.put("/deleteWatchList", async (req, res) => {
-      console.log(req.body);
-      const { email, id } = req.body;
-      const query = { email: email, _id: new ObjectId(id) };
-      const result = await watchList.deleteOne(query);
-      res.send(result);
+      const { email, movieId } = req.body;
+      const user = await userCollection.findOne({ email: email });
+      if (user) {
+        const movies = user.likedMovies;
+        const movieIndex = movies.findIndex(({ id }) => id === movieId);
+        if (!movieIndex) {
+          res.status(400).send({ msg: "Movie not found." });
+        }
+        movies.splice(movieIndex, 1);
+        // await userCollection.findByIdAndUpdate(
+        //   user._id,
+        //   {
+        //     likedMovies: movies,
+        //   },
+        //   { new: true }
+        // );
+        await userCollection.findOneAndUpdate(
+          { _id: user._id },
+          { $set: { likedMovies: movies } },
+          { new: true }
+        );
+
+        return res.json({ msg: "Movie successfully removed.", movies });
+      } else return res.json({ msg: "User with given email not found." });
     });
 
     // Send a ping to confirm a successful connection
