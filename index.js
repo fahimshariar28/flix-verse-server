@@ -57,7 +57,15 @@ async function run() {
       const email = req.params.email;
       const query = { email: email };
       const result = await watchList.find(query).toArray();
-      console.log(result);
+      res.send(result);
+    });
+
+    // delete from watch list
+    app.put("/deleteWatchList", async (req, res) => {
+      console.log(req.body);
+      const { email, id } = req.body;
+      const query = { email: email, _id: new ObjectId(id) };
+      const result = await watchList.deleteOne(query);
       res.send(result);
     });
 
