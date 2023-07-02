@@ -66,28 +66,26 @@ async function run() {
     app.put("/deleteWatchList", async (req, res) => {
       const { email, movieId } = req.body;
       const user = await userCollection.findOne({ email: email });
+
       if (user) {
         const movies = user.likedMovies;
         const movieIndex = movies.findIndex(({ id }) => id === movieId);
-        if (!movieIndex) {
-          res.status(400).send({ msg: "Movie not found." });
+
+        if (movieIndex === -1) {
+          return res.status(400).send({ msg: "Movie not found." });
         }
+
         movies.splice(movieIndex, 1);
-        // await userCollection.findByIdAndUpdate(
-        //   user._id,
-        //   {
-        //     likedMovies: movies,
-        //   },
-        //   { new: true }
-        // );
-        await userCollection.findOneAndUpdate(
+
+        await userCollection.updateOne(
           { _id: user._id },
-          { $set: { likedMovies: movies } },
-          { new: true }
+          { $set: { likedMovies: movies } }
         );
 
         return res.json({ msg: "Movie successfully removed.", movies });
-      } else return res.json({ msg: "User with given email not found." });
+      } else {
+        return res.json({ msg: "User with the given email not found." });
+      }
     });
 
     // Send a ping to confirm a successful connection
